@@ -3,6 +3,27 @@ import axiosInstance from '../api/axiosInstance'
 import Navbar from '../components/Navbar'
 import AsideBar from '../components/AsideBar'
 import Footer from '../components/Footer'
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    ArcElement,
+    Title,
+    Tooltip,
+    Legend
+} from 'chart.js'
+import { Bar, Doughnut } from 'react-chartjs-2'
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    ArcElement,
+    Title,
+    Tooltip,
+    Legend
+)
 
 const Dashboard = ({ isDark, toggleTheme }) => {
 
@@ -11,9 +32,13 @@ const Dashboard = ({ isDark, toggleTheme }) => {
         totalUsers: 0,
         totalTasks: 0,
         assignedTasks: 0,
-        myTasks: 0,
         completedTasks: 0,
-        pendingTasks: 0
+        pendingTasks: 0,
+        inprogressTasks: 0,
+        lowPriority: 0,
+        mediumPriority: 0,
+        highPriority: 0,
+        myTasks: 0,
     })
 
     async function fetchUser() {
@@ -41,13 +66,21 @@ const Dashboard = ({ isDark, toggleTheme }) => {
             const tasks = tasksRes.data.tasks
             const completed = tasks.filter(t => t.status === 'completed').length
             const pending = tasks.filter(t => t.status === 'pending').length
+            const inprogress = tasks.filter(t => t.status === 'inprogress').length
+            const low = tasks.filter(t => t.priority === 'low').length
+            const medium = tasks.filter(t => t.priority === 'medium').length
+            const high = tasks.filter(t => t.priority === 'high').length
 
             setStats({
                 totalUsers: usersRes.data.users.length,
                 totalTasks: tasks.length,
                 assignedTasks: assignRes.data.tasks.length,
                 completedTasks: completed,
-                pendingTasks: pending
+                pendingTasks: pending,
+                inprogressTasks: inprogress,
+                lowPriority: low,
+                mediumPriority: medium,
+                highPriority: high
             })
         } catch (err) {
             console.error(err)
@@ -85,11 +118,69 @@ const Dashboard = ({ isDark, toggleTheme }) => {
         textAlign: 'center'
     }
 
+    const chartCardStyle = {
+        backgroundColor: isDark ? '#1a1a2e' : '#f8f9fa',
+        border: `1px solid ${isDark ? '#2e2e4f' : '#dee2e6'}`,
+        borderRadius: '12px',
+        padding: '25px'
+    }
+
+    // Bar Chart Data
+    const barData = {
+        labels: ['Pending', 'In Progress', 'Completed'],
+        datasets: [
+            {
+                label: 'Tasks by Status',
+                data: [stats.pendingTasks, stats.inprogressTasks, stats.completedTasks],
+                backgroundColor: ['#6c757d', '#ffc107', '#28a745'],
+                borderRadius: 8
+            }
+        ]
+    }
+
+    const barOptions = {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: { color: isDark ? '#fff' : '#000' }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: isDark ? '#fff' : '#000' },
+                grid: { color: isDark ? '#2e2e4f' : '#dee2e6' }
+            },
+            y: {
+                ticks: { color: isDark ? '#fff' : '#000' },
+                grid: { color: isDark ? '#2e2e4f' : '#dee2e6' }
+            }
+        }
+    }
+
+    // Doughnut Chart Data
+    const doughnutData = {
+        labels: ['Low', 'Medium', 'High'],
+        datasets: [
+            {
+                label: 'Tasks by Priority',
+                data: [stats.lowPriority, stats.mediumPriority, stats.highPriority],
+                backgroundColor: ['#6c757d', '#ffc107', '#dc3545'],
+                borderWidth: 0
+            }
+        ]
+    }
+
+    const doughnutOptions = {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: { color: isDark ? '#fff' : '#000' }
+            }
+        }
+    }
+
     return (
-        <div style={{
-            minHeight: '100vh',
-            backgroundColor: isDark ? '#0f0f1a' : '#ffffff'
-        }}>
+        <div style={{ minHeight: '100vh', backgroundColor: isDark ? '#0f0f1a' : '#ffffff' }}>
             <Navbar toggleTheme={toggleTheme} isDark={isDark} />
 
             <div className="container-fluid">
@@ -108,7 +199,9 @@ const Dashboard = ({ isDark, toggleTheme }) => {
                         {user?.role === 'admin' && (
                             <>
                                 <h3 className="mb-4">Admin Dashboard</h3>
-                                <div className="row g-4">
+
+                                {/* Stats Cards */}
+                                <div className="row g-4 mb-5">
                                     <div className="col-md-4">
                                         <div style={cardStyle}>
                                             <h2 style={{ color: '#4e4edb' }}>{stats.totalUsers}</h2>
@@ -137,6 +230,35 @@ const Dashboard = ({ isDark, toggleTheme }) => {
                                         <div style={cardStyle}>
                                             <h2 style={{ color: '#dc3545' }}>{stats.pendingTasks}</h2>
                                             <p className="mb-0">Pending Tasks</p>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-4">
+                                        <div style={cardStyle}>
+                                            <h2 style={{ color: '#ffc107' }}>{stats.inprogressTasks}</h2>
+                                            <p className="mb-0">In Progress Tasks</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Charts */}
+                                <div className="row g-4">
+                                    {/* Bar Chart */}
+                                    <div className="col-md-7">
+                                        <div style={chartCardStyle}>
+                                            <h5 className="mb-4" style={{ color: isDark ? '#fff' : '#000' }}>
+                                                Tasks by Status
+                                            </h5>
+                                            <Bar data={barData} options={barOptions} />
+                                        </div>
+                                    </div>
+
+                                    {/* Doughnut Chart */}
+                                    <div className="col-md-5">
+                                        <div style={chartCardStyle}>
+                                            <h5 className="mb-4" style={{ color: isDark ? '#fff' : '#000' }}>
+                                                Tasks by Priority
+                                            </h5>
+                                            <Doughnut data={doughnutData} options={doughnutOptions} />
                                         </div>
                                     </div>
                                 </div>
